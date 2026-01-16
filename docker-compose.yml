@@ -1,0 +1,53 @@
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: bookstack-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=bookstack
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  bookstack:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: bookstack-app
+    depends_on:
+      - mysql
+    ports:
+      - "8181:8181"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_DATABASE=bookstack
+    volumes:
+      - .:/www/BookStack
+    # 覆盖 CMD 以支持等待 DB 就绪和初始化（如果 Dockerfile 的 install 逻辑不够健壮）
+    # 但原 Dockerfile 有 RUN ./BookStack install，这在构建时运行，需要 DB 存在？
+    # 原 Dockerfile 的 RUN ./BookStack install 是错误的！因为构建时无法连接 DB。
+    # 必须改为在 CMD 或 ENTRYPOINT 中运行 install。
+    command: >
+      sh -c "
+        echo 'Waiting for MySQL...' &&
+        while ! nc -z mysql 3306; do sleep 1; done &&
+        echo 'MySQL is up! Configuring app.conf...' &&
+        sed -i \"s/^db_host=.*/db_host=$$DB_HOST/\" conf/app.conf &&
+        sed -i \"s/^db_port=.*/db_port=$$DB_PORT/\" conf/app.conf &&
+        sed -i \"s/^db_username=.*/db_username=$$DB_USER/\" conf/app.conf &&
+        sed -i \"s/^db_password=.*/db_password=$$DB_PASSWORD/\" conf/app.conf &&
+        sed -i \"s/^db_database=.*/db_database=$$DB_DATABASE/\" conf/app.conf &&
+        echo 'Running install...' &&
+        ./BookStack install &&
+        echo 'Starting BookStack...' &&
+        ./BookStack
+      "
+
+
+volumes:
+  db-data:
