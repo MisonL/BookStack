@@ -3,12 +3,26 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/TruthHun/BookStack/models"
 	"github.com/astaxie/beego/orm"
 	"github.com/mark3labs/mcp-go/mcp"
 )
+
+// Pagination constants
+const (
+	DefaultListBooksPageSize  = 50
+	DefaultSearchDocsPageSize = 30
+	MaxDescriptionSnippetLen  = 100
+)
+
+// stripHTML removes HTML tags from a string
+func stripHTML(s string) string {
+	re := regexp.MustCompile(`<[^>]*>`)
+	return re.ReplaceAllString(s, "")
+}
 
 // HandleListBooks handles the list_books tool
 func HandleListBooks(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -27,7 +41,7 @@ func HandleListBooks(ctx context.Context, request mcp.CallToolRequest) (*mcp.Cal
 	// 使用 FindForHomeToPager 获取带权限的书籍列表
 	// 该方法逻辑：如果会员ID>0，返回 (私有且有权限 OR 公开) 的书籍；否则只返回公开书籍
 	// orderType 空字符串默认 sort by order_index
-	books, _, err := bookModel.FindForHomeToPager(1, 50, memberID, "")
+	books, _, err := bookModel.FindForHomeToPager(1, DefaultListBooksPageSize, memberID, "")
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("Failed to list books: %v", err)), nil
 	}
@@ -42,9 +56,9 @@ func HandleListBooks(ctx context.Context, request mcp.CallToolRequest) (*mcp.Cal
 		}
 		sb.WriteString(fmt.Sprintf("- [ID: %d] **%s** (Identify: %s) - %s\n", b.BookId, b.BookName, b.Identify, vis))
 		if b.Description != "" {
-			desc := b.Description
-			if len(desc) > 100 {
-				desc = desc[:100] + "..."
+			desc := stripHTML(b.Description)
+			if len(desc) > MaxDescriptionSnippetLen {
+				desc = desc[:MaxDescriptionSnippetLen] + "..."
 			}
 			sb.WriteString(fmt.Sprintf("  %s\n", desc))
 		}
@@ -176,7 +190,7 @@ func HandleSearchDocs(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 
 	// 使用 FindToPager 进行全局搜索，支持 memberId 过滤
 	// FindToPager(keyword string, pageIndex, pageSize, memberId int)
-	docs, totalCount, err := searchModel.FindToPager(query, 1, 30, memberID)
+	docs, totalCount, err := searchModel.FindToPager(query, 1, DefaultSearchDocsPageSize, memberID)
 
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("Search failed: %v", err)), nil
@@ -194,11 +208,10 @@ func HandleSearchDocs(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 		// 实际上 SearchDocument SQL: SELECT ... release as description ...
 		// 所以我们有 HTML 片段 (Release)
 
-		// 简单清理 HTML 标签作为 snippet
-		snippet := doc.Description // 这里的 Description 实际上是 release (HTML)
-		// TODO: Strip HTML tags
-		if len(snippet) > 100 {
-			snippet = snippet[:100] + "..."
+		// 清理 HTML 标签作为 snippet
+		snippet := stripHTML(doc.Description)
+		if len(snippet) > MaxDescriptionSnippetLen {
+			snippet = snippet[:MaxDescriptionSnippetLen] + "..."
 		}
 		resultText.WriteString(fmt.Sprintf("  %s\n\n", snippet))
 	}

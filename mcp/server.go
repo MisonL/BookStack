@@ -37,9 +37,7 @@ func createServer() *server.MCPServer {
 	// Tool: list_books
 	s.AddTool(mcp.NewTool("list_books",
 		mcp.WithDescription("List books in BookStack"),
-		mcp.WithString("category", mcp.Description("Optional category filter")),
-		mcp.WithBoolean("include_private", mcp.Description("Include private books (requires token)")),
-		mcp.WithString("member_token", mcp.Description("User token for permission")),
+		mcp.WithString("member_token", mcp.Description("User token for permission (optional)")),
 	), HandleListBooks)
 
 	// Tool: get_doc
