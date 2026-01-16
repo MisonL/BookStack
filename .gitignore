@@ -56,3 +56,5 @@ index/
 /.air.toml
 /tmp
 !package.json
+mcp-server
+migrate_books.py
