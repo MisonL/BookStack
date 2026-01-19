@@ -54,12 +54,20 @@ func main() {
 }
 
 func initDatabase() {
-	adapter := beego.AppConfig.String("db_adapter")
-	host := beego.AppConfig.String("db_host")
-	port := beego.AppConfig.String("db_port")
-	user := beego.AppConfig.String("db_username")
-	password := beego.AppConfig.String("db_password")
-	database := beego.AppConfig.String("db_database")
+	// Read from ENV or fallback to app.conf
+	getEnvOrConf := func(envKey, confKey string) string {
+		if val := os.Getenv(envKey); val != "" {
+			return val
+		}
+		return beego.AppConfig.String(confKey)
+	}
+
+	adapter := getEnvOrConf("DB_ADAPTER", "db_adapter")
+	host := getEnvOrConf("DB_HOST", "db_host")
+	port := getEnvOrConf("DB_PORT", "db_port")
+	user := getEnvOrConf("DB_USER", "db_username")
+	password := getEnvOrConf("DB_PASSWORD", "db_password")
+	database := getEnvOrConf("DB_DATABASE", "db_database")
 
 	if adapter == "" {
 		adapter = "mysql"

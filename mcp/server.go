@@ -4,8 +4,6 @@ import (
 
 	// 使用 mark3labs/mcp-go 作为 MCP 协议实现
 
-	"fmt"
-
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -18,12 +16,9 @@ func ServeStdio() error {
 
 // ServeSSE starts the MCP server in SSE mode
 func ServeSSE(addr string) error {
-	/*
-	   s := createServer()
-	   sseServer := server.NewSSEServer(s, "http://"+addr)
-	   return sseServer.Start(addr)
-	*/
-	return fmt.Errorf("SSE not implemented yet")
+	s := createServer()
+	sseServer := server.NewSSEServer(s, server.WithBaseURL("http://"+addr))
+	return sseServer.Start(addr)
 }
 
 func createServer() *server.MCPServer {

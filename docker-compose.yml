@@ -48,6 +48,35 @@ services:
         ./BookStack
       "
 
+  mcp-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mcp
+    container_name: bookstack-mcp
+    depends_on:
+      - mysql
+    ports:
+      - "9090:9090"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_DATABASE=bookstack
+    command: >
+      sh -c "
+        echo 'Waiting for MySQL...' &&
+        while ! nc -z mysql 3306 2>/dev/null; do sleep 1; done &&
+        echo 'MySQL is up! Configuring app.conf...' &&
+        sed -i \"s/^db_host=.*/db_host=$$DB_HOST/\" conf/app.conf &&
+        sed -i \"s/^db_port=.*/db_port=$$DB_PORT/\" conf/app.conf &&
+        sed -i \"s/^db_username=.*/db_username=$$DB_USER/\" conf/app.conf &&
+        sed -i \"s/^db_password=.*/db_password=$$DB_PASSWORD/\" conf/app.conf &&
+        sed -i \"s/^db_database=.*/db_database=$$DB_DATABASE/\" conf/app.conf &&
+        echo 'Starting MCP Server on port 9090...' &&
+        /app/mcp-server -addr 0.0.0.0:9090
+      "
+    restart: unless-stopped
 
 volumes:
   db-data:
