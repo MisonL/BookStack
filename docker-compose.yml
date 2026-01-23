@@ -32,21 +32,6 @@ services:
     # 但原 Dockerfile 有 RUN ./BookStack install，这在构建时运行，需要 DB 存在？
     # 原 Dockerfile 的 RUN ./BookStack install 是错误的！因为构建时无法连接 DB。
     # 必须改为在 CMD 或 ENTRYPOINT 中运行 install。
-    command: >
-      sh -c "
-        echo 'Waiting for MySQL...' &&
-        while ! nc -z mysql 3306; do sleep 1; done &&
-        echo 'MySQL is up! Configuring app.conf...' &&
-        sed -i \"s/^db_host=.*/db_host=$$DB_HOST/\" conf/app.conf &&
-        sed -i \"s/^db_port=.*/db_port=$$DB_PORT/\" conf/app.conf &&
-        sed -i \"s/^db_username=.*/db_username=$$DB_USER/\" conf/app.conf &&
-        sed -i \"s/^db_password=.*/db_password=$$DB_PASSWORD/\" conf/app.conf &&
-        sed -i \"s/^db_database=.*/db_database=$$DB_DATABASE/\" conf/app.conf &&
-        echo 'Running install...' &&
-        ./BookStack install &&
-        echo 'Starting BookStack...' &&
-        ./BookStack
-      "
 
   mcp-server:
     build:
@@ -63,19 +48,6 @@ services:
       - DB_USER=root
       - DB_PASSWORD=root
       - DB_DATABASE=bookstack
-    command: >
-      sh -c "
-        echo 'Waiting for MySQL...' &&
-        while ! nc -z mysql 3306 2>/dev/null; do sleep 1; done &&
-        echo 'MySQL is up! Configuring app.conf...' &&
-        sed -i \"s/^db_host=.*/db_host=$$DB_HOST/\" conf/app.conf &&
-        sed -i \"s/^db_port=.*/db_port=$$DB_PORT/\" conf/app.conf &&
-        sed -i \"s/^db_username=.*/db_username=$$DB_USER/\" conf/app.conf &&
-        sed -i \"s/^db_password=.*/db_password=$$DB_PASSWORD/\" conf/app.conf &&
-        sed -i \"s/^db_database=.*/db_database=$$DB_DATABASE/\" conf/app.conf &&
-        echo 'Starting MCP Server on port 9090...' &&
-        /app/mcp-server -addr 0.0.0.0:9090
-      "
     restart: unless-stopped
 
 volumes:
