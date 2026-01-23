@@ -1,0 +1,44 @@
+# MCP Server Dockerfile
+# Lightweight image for running the MCP Server in SSE mode
+
+FROM golang:1.23-alpine AS builder
+
+WORKDIR /build
+
+# Install git for go mod download
+RUN apk add --no-cache git
+
+# Copy go mod files first for caching
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build MCP Server
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o mcp-server ./cmd/mcp-server
+
+# --- Runtime Stage ---
+FROM alpine:3.19
+
+WORKDIR /app
+RUN apk add --no-cache netcat-openbsd
+
+# Copy binary and necessary files
+# Copy binary and necessary files
+COPY --from=builder /build/mcp-server /app/
+COPY --from=builder /build/dictionary /app/dictionary/
+COPY --from=builder /build/conf /app/conf/
+
+# Copy entrypoint script (from build context)
+COPY docker/entrypoint-mcp.sh /app/entrypoint.sh
+
+# Set executable permission
+RUN chmod +x /app/mcp-server /app/entrypoint.sh
+
+# Expose SSE port
+EXPOSE 9090
+
+# Run with entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]
+

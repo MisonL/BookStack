@@ -45,7 +45,6 @@ node_modules
 dist
 output
 virtualroot
-docker
 license.cert
 index
 index/
